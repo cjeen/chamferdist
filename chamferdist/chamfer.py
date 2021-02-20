@@ -99,7 +99,7 @@ class ChamferDistance(torch.nn.Module):
         if reverse or bidirectional:
             # Backward Chamfer distance (batchsize_source, lengths_source)
             chamfer_backward = target_nn.dists[..., 0]
-        if batch_reduce == "sum":
+        if point_reduce == "sum":
             chamfer_forward = chamfer_forward.sum(1)  # (batchsize_source,)
             if reverse or bidirectional:
                 chamfer_backward = chamfer_backward.sum(1)  # (batchsize_target,)
