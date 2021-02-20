@@ -27,7 +27,8 @@ class ChamferDistance(torch.nn.Module):
         target_cloud: torch.Tensor,
         bidirectional: Optional[bool] = False,
         reverse: Optional[bool] = False,
-        reduction: Optional[str] = "mean",
+        batch_reduce: Optional[str] = "mean",
+        point_reduce: Optional[str] = "mean",
     ):
 
         if not isinstance(source_cloud, torch.Tensor):
@@ -71,7 +72,7 @@ class ChamferDistance(torch.nn.Module):
                 "Both bidirectional and reverse set to True. "
                 "bidirectional behavior takes precedence."
             )
-        if reduction != "sum" and reduction != "mean":
+        if batch_reduce != "sum" and batch_reduce != "mean":
             raise ValueError('Reduction must either be "sum" or "mean".')
 
         source_nn = knn_points(
@@ -98,16 +99,20 @@ class ChamferDistance(torch.nn.Module):
         if reverse or bidirectional:
             # Backward Chamfer distance (batchsize_source, lengths_source)
             chamfer_backward = target_nn.dists[..., 0]
+        if batch_reduce == "sum":
+            chamfer_forward = chamfer_forward.sum(1)  # (batchsize_source,)
+            if reverse or bidirectional:
+                chamfer_backward = chamfer_backward.sum(1)  # (batchsize_target,)
+        elif point_reduce == "mean":
+            chamfer_forward = chamfer_forward.mean(1)  # (batchsize_source,)
+            if reverse or bidirectional:
+                chamfer_backward = chamfer_backward.mean(1)  # (batchsize_target,)
 
-        chamfer_forward = chamfer_forward.sum(1)  # (batchsize_source,)
-        if reverse or bidirectional:
-            chamfer_backward = chamfer_backward.sum(1)  # (batchsize_target,)
-
-        if reduction == "sum":
+        if batch_reduce == "sum":
             chamfer_forward = chamfer_forward.sum()  # (1,)
             if reverse or bidirectional:
                 chamfer_backward = chamfer_backward.sum()  # (1,)
-        elif reduction == "mean":
+        elif batch_reduce == "mean":
             chamfer_forward = chamfer_forward.mean()  # (1,)
             if reverse or bidirectional:
                 chamfer_backward = chamfer_backward.mean()  # (1,)
